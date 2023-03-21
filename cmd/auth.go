@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/smnspz/totem/internal/config"
+	"github.com/smnspz/totem/internal/domain"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -40,7 +41,7 @@ totem auth -u your.name@anoki.it -p yourpass
 			email = getEmail()
 			password = getPassword()
 		}
-		token := getToken(&User{&email, &password})
+		token := getToken(&domain.User{Email: &email, Password: &password})
 		fmt.Println("\nToken: ", token)
 	},
 }
@@ -51,17 +52,12 @@ func init() {
 	authCmd.Flags().StringVarP(&password, "password", "p", "", "your anoki password")
 }
 
-type User struct {
-	email    *string
-	password *string
-}
-
-func getToken(user *User) string {
+func getToken(user *domain.User) string {
 	baseUrl := config.GetEnvVar("BASE_URL_DEV")
 
 	body, err := json.Marshal(map[string]string{
-		"username": *user.email,
-		"password": *user.password,
+		"username": *user.Email,
+		"password": *user.Password,
 	})
 
 	if err != nil {
@@ -115,5 +111,7 @@ func getEmail() string {
 }
 
 func isInteractive() bool {
-	return (email == "" && password == "") || (email == "" && password != "") || (email != "" && password == "")
+	return (email == "" && password == "") ||
+		(email == "" && password != "") ||
+		(email != "" && password == "")
 }
