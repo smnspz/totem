@@ -29,7 +29,12 @@ var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authorize using anoki's credentials",
 	Long: `Launch the auth subcommand to login interactively, 
-or use the --username and --password flags`,
+or use the --username and --password flags
+
+For example:
+totem auth -u your.name@anoki.it -p yourpass
+
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if isInteractive() {
 			email = getEmail()
