@@ -1,4 +1,4 @@
-module totem
+module github.com/smnspz/totem
 
 go 1.20
 

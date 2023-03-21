@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Simone Rosani <s.rosani@anoki.it>
 */
 package cmd
 
@@ -14,7 +14,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/smnspz/totem/internal/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -51,22 +51,13 @@ func init() {
 	authCmd.Flags().StringVarP(&password, "password", "p", "", "your anoki password")
 }
 
-func getEnvVar(envToGet string) *string {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Failed to retrieve env vars: %v\n", err)
-	}
-	envVar := os.Getenv(envToGet)
-	return &envVar
-}
-
 type User struct {
 	email    *string
 	password *string
 }
 
 func getToken(user *User) string {
-	baseUrl := getEnvVar("BASE_URL_DEV")
+	baseUrl := config.GetEnvVar("BASE_URL_DEV")
 
 	body, err := json.Marshal(map[string]string{
 		"username": *user.email,
