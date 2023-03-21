@@ -6,7 +6,9 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/smnspz/totem/internal/domain"
@@ -16,8 +18,9 @@ import (
 )
 
 var (
-	email    string
-	password string
+	email       string
+	password    string
+	emailRegexp string = `([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@anoki\.it`
 )
 
 // authCmd represents the auth command
@@ -32,11 +35,12 @@ totem auth -u your.name@anoki.it -p yourpass
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		baseUrl := os.Getenv("BASE_URL_DEV")
+
 		if isInteractive() {
-			email = getEmail()
+			email = getEmail(&emailRegexp)
 			password = getPassword()
 		}
-		baseUrl := os.Getenv("BASE_URL_DEV")
 
 		token := http.GetToken(&domain.User{Email: &email, Password: &password}, &baseUrl)
 		fmt.Println("\nToken: ", token)
@@ -63,14 +67,20 @@ func getPassword() string {
 	return string(pwd)
 }
 
-func getEmail() string {
+func getEmail(emailRegexp *string) string {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter email: ")
-	username, err := reader.ReadString('\n')
+	email, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to read stdin: %v", err)
 	}
-	return strings.Trim(username, "\n")
+	match, _ := regexp.MatchString(*emailRegexp, email)
+	if !match {
+		fmt.Println("Your email must end with @anoki.it")
+		getEmail(emailRegexp)
+	}
+
+	return strings.Trim(email, "\n")
 }
 
 func isInteractive() bool {

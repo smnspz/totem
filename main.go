@@ -1,10 +1,9 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
 package main
 
-import "totem/cmd"
+import "github.com/smnspz/totem/cmd"
 
 func main() {
 	cmd.Execute()
