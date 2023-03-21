@@ -5,17 +5,12 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"os"
 	"strings"
 
-	"github.com/smnspz/totem/internal/config"
 	"github.com/smnspz/totem/internal/domain"
+	http "github.com/smnspz/totem/internal/http"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -41,7 +36,9 @@ totem auth -u your.name@anoki.it -p yourpass
 			email = getEmail()
 			password = getPassword()
 		}
-		token := getToken(&domain.User{Email: &email, Password: &password})
+		baseUrl := os.Getenv("BASE_URL_DEV")
+
+		token := http.GetToken(&domain.User{Email: &email, Password: &password}, &baseUrl)
 		fmt.Println("\nToken: ", token)
 	},
 }
@@ -50,40 +47,6 @@ func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.Flags().StringVarP(&email, "email", "u", "", "your anoki corporate email")
 	authCmd.Flags().StringVarP(&password, "password", "p", "", "your anoki password")
-}
-
-func getToken(user *domain.User) string {
-	baseUrl := config.GetEnvVar("BASE_URL_DEV")
-
-	body, err := json.Marshal(map[string]string{
-		"username": *user.Email,
-		"password": *user.Password,
-	})
-
-	if err != nil {
-		log.Fatalf("Failed to parse request payload: %v", err)
-	}
-
-	url := *baseUrl + "/jwt/login"
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
-	if err != nil {
-		log.Fatalf("Failed to send auth request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, ioErr := io.ReadAll(resp.Body)
-	if ioErr != nil {
-		log.Fatalf("Failed to read response: %v", ioErr)
-	}
-
-	var retVal map[string]interface{}
-
-	if err := json.Unmarshal(body, &retVal); err != nil {
-		log.Fatalf("Failed to parse response: %v", err)
-	}
-
-	return retVal["token"].(string)
 }
 
 func getPassword() string {
