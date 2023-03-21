@@ -4,8 +4,15 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
@@ -13,27 +20,63 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authorize using anoki's credentials",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("auth called")
+		token := getToken(&User{"a.scocco@anoki.it", "totempass"})
+		fmt.Println("Token: ", token)
 	},
+}
+
+type User struct {
+	email    string
+	password string
 }
 
 func init() {
 	rootCmd.AddCommand(authCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+func getEnvVar(envToGet string) *string {
+	// path, _ := filepath.Abs(".")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Failed to retrieve env vars: %v\n", err)
+	}
+	envVar := os.Getenv(envToGet)
+	return &envVar
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// authCmd.PersistentFlags().String("foo", "", "A help for foo")
+func getToken(user *User) string {
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// authCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	baseUrl := getEnvVar("BASE_URL_DEV")
+
+	body, err := json.Marshal(map[string]string{
+		"username": user.email,
+		"password": user.password,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to parse request payload: %v", err)
+	}
+
+	url := *baseUrl + "/jwt/login"
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalf("Failed to send auth request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, ioErr := io.ReadAll(resp.Body)
+	if ioErr != nil {
+		log.Fatalf("Failed to read response: %v", ioErr)
+	}
+
+	var retVal map[string]interface{}
+
+	if err := json.Unmarshal(body, &retVal); err != nil {
+		log.Fatalf("Failed to parse response: %v", err)
+	}
+
+	return retVal["token"].(string)
 }
