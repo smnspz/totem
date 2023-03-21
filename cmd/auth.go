@@ -1,6 +1,5 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -13,7 +12,7 @@ import (
 // authCmd represents the auth command
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "A brief description of your command",
+	Short: "Authorize using anoki's credentials",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
