@@ -27,11 +27,6 @@ var authCmd = &cobra.Command{
 	},
 }
 
-type User struct {
-	email    string
-	password string
-}
-
 func init() {
 	rootCmd.AddCommand(authCmd)
 }
@@ -44,6 +39,11 @@ func getEnvVar(envToGet string) *string {
 	}
 	envVar := os.Getenv(envToGet)
 	return &envVar
+}
+
+type User struct {
+	email    string
+	password string
 }
 
 func getToken(user *User) string {
