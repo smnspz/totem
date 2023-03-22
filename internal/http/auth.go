@@ -10,7 +10,7 @@ import (
 	"github.com/smnspz/totem/internal/domain"
 )
 
-func GetToken(user *domain.User, baseUrl *string) string {
+func GetToken(user *domain.User, baseUrl *string) (string, error) {
 	body, err := json.Marshal(map[string]string{
 		"username": *user.Email,
 		"password": *user.Password,
@@ -39,5 +39,12 @@ func GetToken(user *domain.User, baseUrl *string) string {
 		log.Fatalf("Failed to parse response: %v", err)
 	}
 
-	return retVal["token"].(string)
+	if resp.StatusCode != 200 {
+		// TODO: WTF is this. Must refactoring into something better looking
+		messages := retVal["messages"].([]interface{})[0].(map[string]interface{})
+		errorMessage := messages["text"].(string)
+		log.Fatalln(errorMessage)
+	}
+
+	return retVal["token"].(string), nil
 }

@@ -57,7 +57,7 @@ totem auth -u your.name@anoki.it -p yourpass
 		email = viper.GetString("email")
 		password = viper.GetString("password")
 
-		token = http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
+		token, _ = http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
 		fmt.Println("\nToken:", token)
 	},
 }
