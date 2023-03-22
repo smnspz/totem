@@ -3,12 +3,25 @@ package http
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/smnspz/totem/internal/domain"
 )
+
+type AuthError struct {
+	Messages []struct {
+		Text     string `json:"text"`
+		Severity string `json:"severity"`
+	} `json:"messages"`
+	FieldErrors []interface{} `json:"fieldErrors"`
+}
+
+type AuthResponse struct {
+	Token string `json:"token"`
+}
 
 func GetToken(user *domain.User, baseUrl *string) (string, error) {
 	body, err := json.Marshal(map[string]string{
@@ -33,18 +46,17 @@ func GetToken(user *domain.User, baseUrl *string) (string, error) {
 		log.Fatalf("Failed to read response: %v", ioErr)
 	}
 
-	var retVal map[string]interface{}
-
-	if err := json.Unmarshal(body, &retVal); err != nil {
-		log.Fatalf("Failed to parse response: %v", err)
-	}
+	var (
+		authError    AuthError
+		authResponse AuthResponse
+	)
 
 	if resp.StatusCode != 200 {
-		// TODO: WTF is this. Must refactoring into something better looking
-		messages := retVal["messages"].([]interface{})[0].(map[string]interface{})
-		errorMessage := messages["text"].(string)
-		log.Fatalln(errorMessage)
+		json.Unmarshal(body, &authError)
+		return "", errors.New(authError.Messages[0].Text)
 	}
 
-	return retVal["token"].(string), nil
+	json.Unmarshal(body, &authResponse)
+	return authResponse.Token, nil
+
 }
