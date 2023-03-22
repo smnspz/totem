@@ -11,18 +11,6 @@ import (
 	"github.com/smnspz/totem/internal/domain"
 )
 
-type AuthError struct {
-	Messages []struct {
-		Text     string `json:"text"`
-		Severity string `json:"severity"`
-	} `json:"messages"`
-	FieldErrors []interface{} `json:"fieldErrors"`
-}
-
-type AuthResponse struct {
-	Token string `json:"token"`
-}
-
 func GetToken(user *domain.User, baseUrl *string) (string, error) {
 	body, err := json.Marshal(map[string]string{
 		"username": *user.Email,
@@ -47,8 +35,8 @@ func GetToken(user *domain.User, baseUrl *string) (string, error) {
 	}
 
 	var (
-		authError    AuthError
-		authResponse AuthResponse
+		authError    domain.AuthError
+		authResponse domain.AuthResponse
 	)
 
 	if resp.StatusCode != 200 {
