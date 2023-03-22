@@ -37,7 +37,6 @@ totem auth -u your.name@anoki.it -p yourpass
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
 		reader := bufio.NewReader(os.Stdin)
 		baseUrl := config.GetEnvVar("BASE_URL_DEV")
 		emailRegexp := config.GetEnvVar("EMAIL_REGEXP")
@@ -57,7 +56,10 @@ totem auth -u your.name@anoki.it -p yourpass
 		email = viper.GetString("email")
 		password = viper.GetString("password")
 
-		token, _ = http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
+		token, err := http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		fmt.Println("\nToken:", token)
 	},
 }
