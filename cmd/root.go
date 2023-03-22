@@ -45,6 +45,7 @@ func initConfig() {
 		}
 
 		viper.AddConfigPath(home)
+		viper.SetConfigType("toml")
 		viper.SetConfigName(".totemconfig")
 	}
 

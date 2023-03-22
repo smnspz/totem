@@ -11,16 +11,18 @@ import (
 	"regexp"
 	"strings"
 
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/smnspz/totem/internal/config"
 	"github.com/smnspz/totem/internal/domain"
 	http "github.com/smnspz/totem/internal/http"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
 var (
-	email       string
-	password    string
-	emailRegexp string = `([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@anoki\.it`
+	email    string
+	password string
 )
 
 // authCmd represents the auth command
@@ -35,15 +37,17 @@ totem auth -u your.name@anoki.it -p yourpass
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		baseUrl := os.Getenv("BASE_URL_DEV")
+		baseUrl := config.GetEnvVar("BASE_URL_DEV")
+		emailRegexp := config.GetEnvVar("EMAIL_REGEXP")
 
 		if isInteractive() {
-			email = getEmail(&emailRegexp)
+			email = getEmail(emailRegexp)
 			password = getPassword()
+			saveConfigs(&domain.User{Email: &email, Password: &password})
 		}
 
-		token := http.GetToken(&domain.User{Email: &email, Password: &password}, &baseUrl)
-		fmt.Println("\nToken: ", token)
+		token := http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
+		fmt.Println("\nToken:", token)
 	},
 }
 
@@ -51,6 +55,8 @@ func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.Flags().StringVarP(&email, "email", "u", "", "your anoki corporate email")
 	authCmd.Flags().StringVarP(&password, "password", "p", "", "your anoki password")
+	viper.BindPFlag("email", authCmd.Flags().Lookup("email"))
+	viper.BindPFlag("password", authCmd.Flags().Lookup("password"))
 }
 
 func getPassword() string {
@@ -87,4 +93,28 @@ func isInteractive() bool {
 	return (email == "" && password == "") ||
 		(email == "" && password != "") ||
 		(email != "" && password == "")
+}
+
+func saveConfigs(user *domain.User) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("\nDo you want to save your credentials? (y/n) ")
+	arg, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf("Error parsing stdin: %v", err)
+	}
+	home, err := homedir.Dir()
+	if err != nil {
+		log.Fatalf("Cannot find home folder %v", err)
+	}
+	totemPath := strings.Join([]string{home, ".totemconfig"}, "/")
+	switch strings.Trim(arg, "\n") {
+	case "y":
+		viper.WriteConfigAs(totemPath)
+		fmt.Println("You can find and edit your .totemconfig file under", totemPath)
+	case "n":
+		break
+	default:
+		viper.WriteConfigAs(totemPath)
+		fmt.Println("You can find and edit your .totemconfig file under", totemPath)
+	}
 }
