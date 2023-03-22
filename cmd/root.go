@@ -4,7 +4,6 @@ Copyright © 2023 s.rosani@anoki.it
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -50,8 +49,5 @@ func initConfig() {
 	}
 
 	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Printf("Using config file: %v", viper.ConfigFileUsed())
-	}
+	viper.ReadInConfig()
 }

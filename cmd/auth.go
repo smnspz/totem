@@ -37,17 +37,27 @@ totem auth -u your.name@anoki.it -p yourpass
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		var token string
 		reader := bufio.NewReader(os.Stdin)
 		baseUrl := config.GetEnvVar("BASE_URL_DEV")
 		emailRegexp := config.GetEnvVar("EMAIL_REGEXP")
 
-		if isInteractive() {
-			email = readEmail(reader, emailRegexp)
-			password = readPassword()
-			saveConfigs(reader, &domain.User{Email: &email, Password: &password})
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				if isInteractive() {
+					email = readEmail(reader, emailRegexp)
+					password = readPassword()
+					saveConfigs(reader, &domain.User{Email: &email, Password: &password})
+				}
+			} else {
+				log.Fatalf("Failed to parse config file %v", err)
+			}
 		}
 
-		token := http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
+		email = viper.GetString("email")
+		password = viper.GetString("password")
+
+		token = http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
 		fmt.Println("\nToken:", token)
 	},
 }
