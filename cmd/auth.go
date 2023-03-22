@@ -37,13 +37,14 @@ totem auth -u your.name@anoki.it -p yourpass
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		reader := bufio.NewReader(os.Stdin)
 		baseUrl := config.GetEnvVar("BASE_URL_DEV")
 		emailRegexp := config.GetEnvVar("EMAIL_REGEXP")
 
 		if isInteractive() {
-			email = getEmail(emailRegexp)
-			password = getPassword()
-			saveConfigs(&domain.User{Email: &email, Password: &password})
+			email = readEmail(reader, emailRegexp)
+			password = readPassword()
+			saveConfigs(reader, &domain.User{Email: &email, Password: &password})
 		}
 
 		token := http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
@@ -59,7 +60,7 @@ func init() {
 	viper.BindPFlag("password", authCmd.Flags().Lookup("password"))
 }
 
-func getPassword() string {
+func readPassword() string {
 	tty, err := os.Open("/dev/tty")
 	if err != nil {
 		panic(err)
@@ -73,8 +74,7 @@ func getPassword() string {
 	return string(pwd)
 }
 
-func getEmail(emailRegexp *string) string {
-	reader := bufio.NewReader(os.Stdin)
+func readEmail(reader *bufio.Reader, emailRegexp *string) string {
 	fmt.Print("Enter email: ")
 	email, err := reader.ReadString('\n')
 	if err != nil {
@@ -83,7 +83,7 @@ func getEmail(emailRegexp *string) string {
 	match, _ := regexp.MatchString(*emailRegexp, email)
 	if !match {
 		fmt.Println("Your email must end with @anoki.it")
-		getEmail(emailRegexp)
+		readEmail(reader, emailRegexp)
 	}
 
 	return strings.Trim(email, "\n")
@@ -95,8 +95,7 @@ func isInteractive() bool {
 		(email != "" && password == "")
 }
 
-func saveConfigs(user *domain.User) {
-	reader := bufio.NewReader(os.Stdin)
+func saveConfigs(reader *bufio.Reader, user *domain.User) {
 	fmt.Print("\nDo you want to save your credentials? (y/n) ")
 	arg, err := reader.ReadString('\n')
 	if err != nil {
