@@ -6,12 +6,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"log"
+
 	"os"
 	"regexp"
 	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/rs/zerolog/log"
 	"github.com/smnspz/totem/internal/config"
 	"github.com/smnspz/totem/internal/domain"
 	http "github.com/smnspz/totem/internal/http"
@@ -41,26 +42,15 @@ totem auth -u your.name@anoki.it -p yourpass
 		baseUrl := config.GetEnvVar("BASE_URL_DEV")
 		emailRegexp := config.GetEnvVar("EMAIL_REGEXP")
 
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				if isInteractive() {
-					email = readEmail(reader, emailRegexp)
-					password = readPassword()
-					saveConfigs(reader, &domain.User{Email: &email, Password: &password})
-				}
-			} else {
-				log.Fatalf("Failed to parse config file %v", err)
-			}
-		}
-
-		email = viper.GetString("email")
-		password = viper.GetString("password")
+		email, password = setCredentials(reader, emailRegexp)
 
 		token, err := http.GetToken(&domain.User{Email: &email, Password: &password}, baseUrl)
 		if err != nil {
-			log.Fatalln(err)
+			log.Error().Err(err).Msg("Failed to authenticate")
+			os.Exit(1)
 		}
-		fmt.Println("\nToken:", token)
+		log.Info().Str("jwt", token)
+		fmt.Println("Token:", token)
 	},
 }
 
@@ -72,33 +62,57 @@ func init() {
 	viper.BindPFlag("password", authCmd.Flags().Lookup("password"))
 }
 
+func setCredentials(reader *bufio.Reader, emailRegexp *string) (string, string) {
+	var email, password string
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			if isInteractive() {
+				email = readEmail(reader, emailRegexp)
+				password = readPassword()
+				showSaveConfigsPrompt(reader, &domain.User{Email: &email, Password: &password})
+				return email, password
+			}
+		} else {
+			log.Error().Err(err).Msg("Failed to read config file")
+			os.Exit(1)
+		}
+	}
+	email = viper.GetString("email")
+	password = viper.GetString("password")
+	return email, password
+}
+
 func readPassword() string {
 	tty, err := os.Open("/dev/tty")
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err)
+		os.Exit(1)
 	}
 	defer tty.Close()
 	fmt.Print("Type your password: ")
 	pwd, err := term.ReadPassword(int(tty.Fd()))
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err)
+		os.Exit(1)
 	}
 	return string(pwd)
 }
 
 func readEmail(reader *bufio.Reader, emailRegexp *string) string {
 	fmt.Print("Enter email: ")
-	email, err := reader.ReadString('\n')
+	stdin, err := reader.ReadString('\n')
 	if err != nil {
-		log.Fatalf("Failed to read stdin: %v", err)
+		log.Error().Err(err).Msg("Failed to read stdin")
+		os.Exit(1)
 	}
+	email := strings.Trim(stdin, "\n")
 	match, _ := regexp.MatchString(*emailRegexp, email)
 	if !match {
 		fmt.Println("Your email must end with @anoki.it")
 		readEmail(reader, emailRegexp)
 	}
 
-	return strings.Trim(email, "\n")
+	return email
 }
 
 func isInteractive() bool {
@@ -107,15 +121,17 @@ func isInteractive() bool {
 		(email != "" && password == "")
 }
 
-func saveConfigs(reader *bufio.Reader, user *domain.User) {
+func showSaveConfigsPrompt(reader *bufio.Reader, user *domain.User) {
 	fmt.Print("\nDo you want to save your credentials? (y/n) ")
 	arg, err := reader.ReadString('\n')
 	if err != nil {
-		log.Fatalf("Error parsing stdin: %v", err)
+		log.Error().Err(err).Msg("Failed to parse stdin")
+		os.Exit(1)
 	}
 	home, err := homedir.Dir()
 	if err != nil {
-		log.Fatalf("Cannot find home folder %v", err)
+		log.Error().Err(err).Msg("Failed to find home folder")
+		os.Exit(1)
 	}
 	totemPath := strings.Join([]string{home, ".totemconfig"}, "/")
 	switch strings.Trim(arg, "\n") {
