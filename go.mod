@@ -2,7 +2,10 @@ module github.com/smnspz/totem
 
 go 1.20
 
-require github.com/spf13/cobra v1.6.1
+require (
+	github.com/rs/zerolog v1.29.0
+	github.com/spf13/cobra v1.6.1
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -12,8 +15,6 @@ require (
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
-	github.com/rs/zerolog v1.29.0 // indirect
-	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
