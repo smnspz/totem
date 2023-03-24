@@ -10,7 +10,8 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["auth"]
+            "args": ["auth"],
+            "console": "integratedTerminal"
         }
     ]
 }
