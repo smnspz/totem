@@ -100,18 +100,19 @@ func readPassword() string {
 
 func readEmail(reader *bufio.Reader, emailRegexp *string) string {
 	fmt.Print("Enter email: ")
-	email, err := reader.ReadString('\n')
+	stdin, err := reader.ReadString('\n')
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read stdin")
 		os.Exit(1)
 	}
+	email := strings.Trim(stdin, "\n")
 	match, _ := regexp.MatchString(*emailRegexp, email)
 	if !match {
 		fmt.Println("Your email must end with @anoki.it")
 		readEmail(reader, emailRegexp)
 	}
 
-	return strings.Trim(email, "\n")
+	return email
 }
 
 func isInteractive() bool {
